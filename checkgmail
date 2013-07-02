@@ -1,0 +1,64 @@
+#!/bin/bash
+
+##############################
+# checkgmail
+## Adapted from example at http://www.shellperson.net/quickly-check-gmail-with-bash/
+## Thanks to @chad at http://stackoverflow.com/questions/893585/how-to-parse-xml-in-bash for the XML parsing mechanics
+##############################
+
+echo
+echo -n "Username: "
+read -e USER
+echo
+echo -n "Password: "
+read -es PASS
+echo
+echo -e "Checking for new messages..."
+echo
+
+feedoutput=`wget -T 3 -t 1 -q --secure-protocol=TLSv1 --no-check-certificate \
+  --user=$USER --password=$PASS https://mail.google.com/mail/feed/atom -O -`
+
+
+function read_xml {
+	ORIGINAL_IFS=$IFS
+	IFS=\>
+	read -d \< E C # read and set as Entity and Content
+	IFS=$ORIGINAL_IFS
+}
+
+echo $feedoutput | while read_xml; do
+
+  if [[ $E = "fullcount" ]] ; then
+    if [[ $C == 0 ]]; then
+    	echo "No new mail."
+    	break
+    else
+    	echo "$C New Messages:"
+    	echo "=================================="
+    	echo
+    fi    
+  fi
+
+  if [[ $E = "title" ]]; then
+  	echo
+  	echo "$C"
+  fi
+
+  if [[ $E = "issued" ]]; then
+  	echo "	$C"
+  fi
+
+  if [[ $E = "summary" ]]; then
+  	echo "$C [...]"
+  fi
+
+  if [[ $E = "name" ]]; then
+  	echo "	$C"
+  fi
+
+  if [[ $E = "email" ]]; then
+  	echo "	$C"
+  fi
+
+done
